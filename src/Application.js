@@ -9,7 +9,9 @@ function Application(props) {
     const [highlighted, setHighlighted] = useState(false);
     const [position, setPosition] = useState({x: 0, y: 23});
     const [isDragging, setIsDragging] = useState(false);
+    const [isResizing, setIsResizing] = useState(false);
     const [offset, setOffset] = useState({ x: 0, y: 0 });
+    const [size, setSize] = useState({width:300, height:200});
     const [clickTimeout, setClickTimeout] = useState(null);
     const { getNextZIndex } = useZIndex();
     const [zIndex, setZIndex] = useState(1);
@@ -38,6 +40,7 @@ function Application(props) {
 
     const stopDragging = (e) => {
         setIsDragging(false);
+        setIsResizing(false);
     };
 
     const onDrag = (e) => {
@@ -78,6 +81,45 @@ function Application(props) {
         setExpanded(false);
         setHighlighted(false);
     };
+    const startResizing = (e, direction) => {
+        setIsResizing(true);
+        setOffset({
+            x: e.clientX,
+            y: e.clientY,
+            direction: direction,
+        });
+    };
+    const stopResizing = (e, direction) => {
+                setIsResizing(false);
+    }
+        const onResize = (e) => {
+        if (isResizing) {
+            const { direction } = offset;
+            const deltaX = e.clientX - offset.x;
+            const deltaY = e.clientY - offset.y;
+            let newWidth = size.width;
+            let newHeight = size.height;
+
+            if (direction.includes('right')) {
+                newWidth += deltaX;
+            }
+            if (direction.includes('bottom')) {
+                newHeight += deltaY;
+            }
+
+            if (newWidth > 100 && newHeight > 100) {
+                setSize({
+                    width: newWidth,
+                    height: newHeight,
+                });
+                setOffset({
+                    ...offset,
+                    x: e.clientX,
+                    y: e.clientY,
+                });
+            }
+        }
+    };
 
     return (
         <div
@@ -107,8 +149,8 @@ function Application(props) {
                     <Icon text={props.title} />
                 </div>
             )}
-            {expanded && (
-                <div className="window">
+                        {expanded && (<>
+                
                     <div
                         onMouseDown={startDragging}
                         onMouseMove={onDrag}
@@ -118,9 +160,43 @@ function Application(props) {
                     >
                         <WindowHeader title={props.title} onClose={onClose} />
                     </div>
+                    <div
+                    className="window"
+                    style={{
+                        width: `${size.width}px`,
+                        height: `${size.height}px`,
+                        position: 'relative',
+                    }}
+                    onMouseMove={onResize}
+                    onMouseUp={stopDragging}
+                    onMouseLeave={stopDragging}
+                    onClick={bringToFront}
+                >
                     <Window content={props.content} />
+                    {/* Resize handles */}
+                    <div
+                        onMouseDown={(e) => startResizing(e, 'right')}
+                        onMouseUp={(e) => stopResizing(e, 'right')}
+                        
+                        style={{ position: 'absolute', right: '-15px', top: 0, width: '30px', height: '100%', cursor: 'ew-resize' }}
+                    />
+                    <div
+                        onMouseDown={(e) => startResizing(e, 'bottom')}
+                        onMouseUp={(e) => stopResizing(e, 'bottom')}
+
+
+                        style={{ position: 'absolute', bottom: "-8px", left: '8px', width: '100%', height: '30px', cursor: 'ns-resize' }}
+                    />
+                    <div
+                        onMouseDown={(e) => startResizing(e, 'bottom-right')}
+                        onMouseUp={(e) => stopResizing(e, 'bottom-right')}
+
+
+
+                        style={{ position: 'absolute', right: '-15px', bottom: 0, width: '100%', height: '30px', cursor: 'nwse-resize' }}
+                    />
                 </div>
-            )}
+            </>)}
         </div>
     );
 }
