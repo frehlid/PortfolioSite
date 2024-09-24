@@ -3,24 +3,27 @@ import Icon from './Icon';
 import Window from './Window';
 import WindowHeader from './WindowHeader';
 import { useZIndex } from './ZIndexContext';
+import { useHighlight } from './HighlightContext';
 
 function Application(props) {
+    const { initialPosition = { x: 0, y: 23 }, sections = [] } = props; // Accept 'sections' as a prop
     const [expanded, setExpanded] = useState(false);
-    const [highlighted, setHighlighted] = useState(false);
-    const [position, setPosition] = useState({x: 0, y: 23});
+    const [position, setPosition] = useState(initialPosition);
     const [isDragging, setIsDragging] = useState(false);
     const [isResizing, setIsResizing] = useState(false);
     const [offset, setOffset] = useState({ x: 0, y: 0 });
-    const [size, setSize] = useState({width:300, height:200});
+    const [size, setSize] = useState({ width: 300, height: 200 });
     const [clickTimeout, setClickTimeout] = useState(null);
     const { getNextZIndex } = useZIndex();
     const [zIndex, setZIndex] = useState(1);
 
+    const { highlightedApp, setHighlightedApp } = useHighlight(); // Get highlight context
+    const isHighlighted = highlightedApp === props.title; // Check if this app is highlighted
 
     useEffect(() => {
         const handleOutsideClick = (e) => {
             if (!e.target.closest('.application-container')) {
-                setHighlighted(false);
+                setHighlightedApp(null);
             }
         };
         document.addEventListener('mousedown', handleOutsideClick);
@@ -28,7 +31,7 @@ function Application(props) {
         return () => {
             document.removeEventListener('mousedown', handleOutsideClick);
         };
-    }, []);
+    }, [setHighlightedApp]);
 
     const startDragging = (e) => {
         setIsDragging(true);
@@ -44,7 +47,6 @@ function Application(props) {
     };
 
     const onDrag = (e) => {
-
         if (isDragging) { 
             bringToFront();
             const x = e.clientX - offset.x;
@@ -58,41 +60,48 @@ function Application(props) {
     };
 
     const bringToFront = () => {
-        // Increase zIndex using the context function
         const newZIndex = getNextZIndex();
         setZIndex(newZIndex);
     };
 
     const onClick = (e) => {
         bringToFront();
+        setHighlightedApp(props.title); // Set this app as the highlighted one
         if (clickTimeout) {
             clearTimeout(clickTimeout);
             setClickTimeout(null);
-            setExpanded(true);
-            setHighlighted(false);
+            setExpanded(true);  // Expand window on double-click
         } else {
             setClickTimeout(setTimeout(() => {
                 setClickTimeout(null);
-                setHighlighted(true);
+                //setExpanded(false);  // Single click will only set the highlight
             }, 500));
         }
     };
+
     const onClose = (e) => {
         setExpanded(false);
-        setHighlighted(false);
+        setHighlightedApp(null);  // Clear highlight on close
     };
-    const startResizing = (e, direction) => {
-        setIsResizing(true);
-        setOffset({
-            x: e.clientX,
-            y: e.clientY,
-            direction: direction,
-        });
-    };
-    const stopResizing = (e, direction) => {
-                setIsResizing(false);
-    }
-        const onResize = (e) => {
+
+const startResizing = (e, direction) => {
+    setIsResizing(true);
+    setOffset({
+        x: e.clientX,
+        y: e.clientY,
+        direction: direction,
+    });
+    document.addEventListener('mousemove', onResize);
+    document.addEventListener('mouseup', stopResizing);
+};
+
+const stopResizing = () => {
+    setIsResizing(false);
+    document.removeEventListener('mousemove', onResize);
+    document.removeEventListener('mouseup', stopResizing);
+};
+
+    const onResize = (e) => {
         if (isResizing) {
             const { direction } = offset;
             const deltaX = e.clientX - offset.x;
@@ -141,7 +150,7 @@ function Application(props) {
                     onMouseLeave={stopDragging}
                     onClick={onClick}
                     style={
-                        highlighted
+                        isHighlighted
                             ? { backgroundColor: 'rgba(10,10,10,0.1)', borderRadius: 5 }
                             : { backgroundColor: 'rgba(0,0,0,0)' }
                     }
@@ -149,8 +158,8 @@ function Application(props) {
                     <Icon text={props.title} />
                 </div>
             )}
-                        {expanded && (<>
-                
+            {expanded && (
+                <>
                     <div
                         onMouseDown={startDragging}
                         onMouseMove={onDrag}
@@ -161,44 +170,40 @@ function Application(props) {
                         <WindowHeader title={props.title} onClose={onClose} />
                     </div>
                     <div
-                    className="window"
-                    style={{
-                        width: `${size.width}px`,
-                        height: `${size.height}px`,
-                        position: 'relative',
-                    }}
-                    onMouseMove={onResize}
-                    onMouseUp={stopDragging}
-                    onMouseLeave={stopDragging}
-                    onClick={bringToFront}
-                >
-                    <Window content={props.content} />
-                    {/* Resize handles */}
-                    <div
-                        onMouseDown={(e) => startResizing(e, 'right')}
-                        onMouseUp={(e) => stopResizing(e, 'right')}
-                        
-                        style={{ position: 'absolute', right: '-15px', top: 0, width: '30px', height: '100%', cursor: 'ew-resize' }}
-                    />
-                    <div
-                        onMouseDown={(e) => startResizing(e, 'bottom')}
-                        onMouseUp={(e) => stopResizing(e, 'bottom')}
-
-
-                        style={{ position: 'absolute', bottom: "-8px", left: '8px', width: '100%', height: '30px', cursor: 'ns-resize' }}
-                    />
-                    <div
-                        onMouseDown={(e) => startResizing(e, 'bottom-right')}
-                        onMouseUp={(e) => stopResizing(e, 'bottom-right')}
-
-
-
-                        style={{ position: 'absolute', right: '-15px', bottom: 0, width: '100%', height: '30px', cursor: 'nwse-resize' }}
-                    />
-                </div>
-            </>)}
+                        className="window"
+                        style={{
+                            width: `${size.width}px`,
+                            height: `${size.height}px`,
+                            position: 'relative',
+                        }}
+                        onMouseMove={onResize}
+                        onMouseUp={stopDragging}
+                        onMouseLeave={stopDragging}
+                        onClick={bringToFront}
+                    >
+                        <Window sections={sections} />
+                        {/* Resize handles */}
+                        <div
+                            onMouseDown={(e) => startResizing(e, 'right')}
+                            onMouseUp={stopResizing}
+                            style={{ position: 'absolute', right: '-15px', top: 0, width: '30px', height: '100%', cursor: 'ew-resize' }}
+                        />
+                        <div
+                            onMouseDown={(e) => startResizing(e, 'bottom')}
+                            onMouseUp={stopResizing}
+                            style={{ position: 'absolute', bottom: "-8px", left: '8px', width: '100%', height: '30px', cursor: 'ns-resize' }}
+                        />
+                        <div
+                            onMouseDown={(e) => startResizing(e, 'bottom-right')}
+                            onMouseUp={stopResizing}
+                            style={{ position: 'absolute', right: '-15px', bottom: 0, width: '100%', height: '30px', cursor: 'nwse-resize' }}
+                        />
+                    </div>
+                </>
+            )}
         </div>
     );
 }
+
 
 export default Application;
