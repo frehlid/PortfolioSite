@@ -1,0 +1,63 @@
+body {
+  padding: 0;
+  margin: 0;
+  background-color: black;
+}
+
+.main__wrapper {
+  position: fixed;
+}
+
+#scrollarea {
+  width: 100vw;
+  height: 100vh;
+  overflow: auto;
+}
+
+.webGl__text {
+  font-family: Arial, sans-serif;
+  color: white;
+  font-size: 15vw;
+  opacity: 0;
+  cursor: pointer;
+  margin: 0;
+  outline: none;
+  white-space: nowrap;
+
+  line-height: unset!important;
+  display: table-cell;
+}
+
+ul {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  display: table;
+  margin: auto;
+
+}
+
+li {
+  display: table-row;
+}
+
+p, h2 {
+  margin: 0;
+  line-height: 1;
+  color: white;
+}
+
+p {
+  font-size: 20px;
+  display: table-cell;
+}
+
+canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: -1;
+}

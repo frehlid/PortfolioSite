@@ -1,0 +1,169 @@
+@font-face {
+  font-family: 'Perfectly Nineties';
+  src:
+    local("Perfectly Nineties"),
+    url("./perfectly-nineties-regular.otf") format("opentype");
+  font-weight: regular;
+}
+
+@font-face {
+  font-family: 'Perfectly Nineties';
+  src:
+    local("Perfectly Nineties"),
+    url("./perfectly-nineties-3.otf") format("opentype");
+  font-weight: bold;
+}
+
+body {
+  padding: 0;
+  margin: 0;
+  background-color: black;
+  cursor: none;
+}
+
+.main__wrapper {
+  position: fixed;
+}
+
+#scrollarea {
+  width: 100vw;
+  height: 100vh;
+  overflow-y: auto;
+  
+  /* Add scroll snap behavior */
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth; /* optional: nice smooth scrolling */
+}
+
+li {
+  height: 30vw;
+  width: 100vw;
+  min-width: 100vw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column; /* Stack content vertically */
+  margin: 0;
+  overflow: hidden;
+}
+
+.hidden {
+  height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: height 0.3s ease, opacity 0.3s ease;
+}
+
+.visible {
+  height: auto; /* Dynamically adjusted via JavaScript */
+  opacity: 1;
+  overflow: visible;
+  transition: height 0.3s ease, opacity 0.3s ease;
+}
+
+.collapsible-content {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+}
+
+.collapsible-content.visible {
+  max-height: 1000px; 
+  opacity: 1;
+}
+
+
+.logos {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  width: 100vw;
+  height: 5vw;
+  position: relative;
+  top: -20vw;
+  z-index: 99999;
+  pointer-events: all;
+}
+
+.logo {
+  width: 5vw;
+  height: 5vw;
+  margin: 0 2vw;
+  position: relative;
+  pointer-events: all;
+  z-index: 99999;
+}
+
+
+
+
+.webGl__text {
+  font-family: Arial, sans-serif;
+  color: white;
+  font-size: 15vw;
+  opacity: 0;
+  margin: 0;
+  outline: none;
+  white-space: nowrap;
+
+  line-height: unset !important;
+  cursor:none;
+  position: relative;
+}
+
+ul {
+  list-style-type: none;
+  margin: 0;
+  width: 100%;
+  padding: calc(50vh - 5vh) 0 0; /* Offset the list to start halfway down the screen */
+}
+
+
+
+/* Add spacing between the first and second list item */
+li:nth-child(2) {
+  margin-top: 5em; /* Adjust this value as needed */
+}
+
+p, h2 {
+  margin: 0;
+  line-height: 1;
+  color: white;
+}
+
+.h2 {
+  z-index: 1000;
+}
+
+h2.webGl__text {
+  position: relative;
+  z-index: 9999;
+  pointer-events: all;
+  cursor: none;
+}
+
+
+p {
+  font-size: 20px;
+  text-align: center;
+  pointer-events: none;
+}
+
+p.webGl__text {
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
+}
+
+canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
