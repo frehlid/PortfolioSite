@@ -480,15 +480,15 @@ class TitlePixi {
 
 class RichTextPixi {
   constructor($el, stage) {
-      this.$el = $el; // The DOM <p>
+      this.$el = $el; 
       this.stage = stage;
-      this.allChunks = []; // Will hold PIXI.Text objects + 'lineBreak' markers
-      this.lines = []; // Array of arrays, each is a line of text
+      this.allChunks = []; 
+      this.lines = []; 
       this.sizeFactor = 0.02;
       this.yOffset = 0;
-      this.lineHeight = this.$el.style.lineHeight;
+      console.log(this.$el.style.lineHeight); 
+      this.lineHeight = 0.25; // todo - get this from the CSS
 
-      // Define text styles
       this.normalStyle = new PIXI.TextStyle({
           fontFamily: "Perfectly Nineties",
           fontSize: window.innerWidth * this.sizeFactor,
@@ -509,13 +509,11 @@ class RichTextPixi {
           textDecoration: "underline",
       });
 
-      // Parse HTML node
+
       this.parseNodes();
 
-      // Build lines from chunks
       this.buildLines();
 
-      // Position them
       this.updatePosition();
   }
 
@@ -593,7 +591,7 @@ class RichTextPixi {
       let currentLine = [];
       let currentLineWidth = 0;
 
-      const maxLineWidth = 800; // Adjust this as needed
+      const maxLineWidth = (2/3) * window.innerWidth; 
       let lineHeight = this.lineHeight;
       this.allChunks.forEach((chunk) => {
           if (chunk.type === "lineBreak") {
@@ -690,7 +688,7 @@ class RichTextPixi {
 
 class ImagePixi {
     constructor($el, stage, scale, bloomFilter) {
-        this.$el = $el; // Reference to the DOM element
+        this.$el = $el; 
         this.stage = stage;
         this.scale = scale;
 
@@ -708,13 +706,11 @@ class ImagePixi {
             const texture = PIXI.Texture.from(imgSrc);
             this.sprite = new PIXI.Sprite(texture);
 
-            // Set anchor, scale, and add to stage
             if (this.$el.classList.contains("projectImage")) {
               this.sprite.anchor.set(0.5);
             } else {
               this.sprite.anchor.set(0.5);
             }
-            // set scale based on window width
             const scale = window.innerWidth / this.scale;
             this.sprite.scale.set(scale);
 
@@ -728,18 +724,15 @@ class ImagePixi {
     }
 
     addListeners() {
-        // Enable interaction on the sprite
         // this.sprite.interactive = true;
         // this.sprite.buttonMode = true;
     
         // Handle hover
         this.$el.addEventListener("mouseenter", () => {
-            // Increase the Pixi sprite’s scale by 20%
             this.scale /= 1.2;
         });
     
         this.$el.addEventListener("mouseleave", () => {
-            // Reset scale back to the original (as computed in updatePosition or constructor)
             this.scale *= 1.2;
         });
 
