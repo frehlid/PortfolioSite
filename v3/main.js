@@ -30,8 +30,9 @@ class PixiScene {
 
     async init() {
         this.initializeRenderer();
-        this.initializeCustomCursor();
         this.initializeContainers();
+        this.initializeCustomCursor();
+
         this.initializeFilters();
         this.createGradientBackground();
         this.createBordersAndMask();
@@ -49,9 +50,12 @@ class PixiScene {
         this.app.filters = [
             this.filter,
             this.crtFilter,
-            this.bloomFilter,
+          //  this.bloomFilter,
         ];
+        this.textContainer.filters = [this.bloomFilter];
+        this.textContainer.filterArea = this.renderer.screen;
         this.contentContainer.filters = [this.displacementFilter];
+        this.imageContainer.filters = [this.mildBloomFilter];
     }
 
     initializeRenderer() {
@@ -72,7 +76,7 @@ class PixiScene {
         document.body.style.cursor = "none";
         this.customCursor = new PIXI.Graphics();
         this.customCursor.beginFill(0xffffff);
-        this.customCursor.lineStyle(1, 0x000000, 1);
+        this.customCursor.lineStyle(1, 0xeeeeeee, 1);
         this.customCursor.moveTo(0, 0);
         this.customCursor.lineTo(25, 10);
         this.customCursor.lineTo(10, 10);
@@ -89,9 +93,27 @@ class PixiScene {
 
     initializeContainers() {
         this.bgContainer = new PIXI.Container();
+        this.bezelContainer = new PIXI.Container();
         this.contentContainer = new PIXI.Container();
-        this.app.addChild(this.contentContainer);
+        this.textContainer = new PIXI.Container();
+
+        // dummy fill to stop the bloom from getting cut off...
+        const topExample = new PIXI.Graphics();
+        topExample.beginFill(0x000000);
+        topExample.drawRect(0, 0, window.innerWidth, window.innerHeight / 2);
+        topExample.endFill();
+        topExample.alpha=0;
+        this.textContainer.addChild(topExample);
+
+        this.imageContainer = new PIXI.Container();
+        this.imageContainer.filterArea = this.renderer.screen;
+       // this.imageContainer.addChild(topExample);
+       this.contentContainer.addChild(this.imageContainer);
+
+        this.contentContainer.addChild(this.textContainer);
         this.app.addChild(this.bgContainer);
+        this.app.addChild(this.contentContainer);
+
     }
 
     initializeFilters() {
@@ -126,7 +148,7 @@ class PixiScene {
     createBordersAndMask() {
         this.borderGraphics = new PIXI.Graphics();
         this.drawBorder();
-        this.bgContainer.addChild(this.borderGraphics);
+        this.bezelContainer.addChild(this.borderGraphics);
 
         this.bgMask = new PIXI.Graphics();
         this.drawMask();
@@ -154,19 +176,26 @@ class PixiScene {
         });
     }
 
-    
-
     initializeBloomFilter() {
         this.bloomFilter = new AdvancedBloomFilter({
             threshold: 0.98,
-            bloomScale: 1.5,
+            bloomScale: 1,
             brightness: 1.1,
-            blur: 10,
+            blur: 5,
             quality: 30,
+            autoFit: true,
+            padding:5,
         });
- 
+        this.mildBloomFilter = new AdvancedBloomFilter({
+            threshold: 0.8,
+            bloomScale: 0.2,
+            brightness: 1,
+            blur: 20,
+            quality: 30,
+            autoFit: true,
+            padding:5,
+        });
     }
-
 
     parseContent() {
         // Select all li elements
@@ -192,7 +221,7 @@ class PixiScene {
             // Unchanged: handle titles with TitlePixi, etc.
             const title = new TitlePixi(
               $subElement,
-              this.contentContainer,
+              this.textContainer,
               this.filter,
               index,
               this.titleSpacing,
@@ -202,23 +231,19 @@ class PixiScene {
             this.titles.push(title);
       
           } else if ($subElement.tagName.toLowerCase() === "p") {
-            // Let's find the parent <div>
-          
-            // Create the RichTextPixi object
-            const richText = new RichTextPixi($subElement, this.contentContainer);
+
+            const richText = new RichTextPixi($subElement, this.textContainer);
             
-            // Store a reference to the parent <div> so we know where it belongs
             richText.parentDiv = parentDiv;
           
             if (!this.richTexts) this.richTexts = [];
             this.richTexts.push(richText);
           } else if ($subElement.tagName.toLowerCase() === "img") {
-            const imgPixi = new ImagePixi($subElement, this.contentContainer, 3500);
+            const imgPixi = new ImagePixi($subElement, this.imageContainer, 3500, this.mildBloomFilter);
             imgPixi.parentDiv = parentDiv;
             this.sprites.push(imgPixi);
       
           } else if ($subElement.tagName.toLowerCase() === "div") {
-            // Recursively parse sub-elements
             this.parseSubElements($subElement, index);
           }
         }
@@ -265,7 +290,7 @@ class PixiScene {
         requestAnimationFrame(this.update.bind(this));
     
         this.crtFilter.time += 0.1;
-        this.gradientTime += 0.001 + this.scrollSpeed;
+        this.gradientTime += 0.002 + this.scrollSpeed;
         this.scrollSpeed *= 0.9;
         this.gradientFilter.uniforms.uTime = this.gradientTime;
     
@@ -343,7 +368,7 @@ class TitlePixi {
             align: "center",
         });
         this.text.resolution = 3;
-        this.text.anchor.set(0.5);
+        this.text.anchor.set(0.5,0);
         this.stage.addChild(this.text);
         this.title.pixiText = this.text;
 
@@ -438,7 +463,7 @@ class TitlePixi {
         
 
         if (this.title.tagName.toLowerCase() === "p") {
-            y -= window.innerWidth / 12; // Adjust this offset as needed
+          //  y -= window.innerWidth / 12; // Adjust this offset as needed
         }
         this.text.position.set(x, y);
     }
@@ -453,208 +478,218 @@ class TitlePixi {
     }
 }
 
-
 class RichTextPixi {
-    constructor($el, stage) {
-      this.$el = $el;         // The DOM <p>
-      this.stage = stage;     
-      this.allChunks = [];    // Will hold PIXI.Text objects + 'lineBreak' markers
-      this.lines = [];        // Array of arrays, each is a line of text
-      this.sizeFactor= 0.02;
-      this.yOffset = window.innerWidth / 12;
+  constructor($el, stage) {
+      this.$el = $el; // The DOM <p>
+      this.stage = stage;
+      this.allChunks = []; // Will hold PIXI.Text objects + 'lineBreak' markers
+      this.lines = []; // Array of arrays, each is a line of text
+      this.sizeFactor = 0.02;
+      this.yOffset = 0;
+      this.lineHeight = this.$el.style.lineHeight;
 
-
+      // Define text styles
       this.normalStyle = new PIXI.TextStyle({
-        fontFamily: "Perfectly Nineties",
-        fontSize: window.innerWidth * this.sizeFactor,
-        fill: "white",
+          fontFamily: "Perfectly Nineties",
+          fontSize: window.innerWidth * this.sizeFactor,
+          fill: "white",
       });
-  
+
       this.boldStyle = new PIXI.TextStyle({
-        fontFamily: "Perfectly Nineties",
-        fontWeight: "bold",
-        fontSize: window.innerWidth * this.sizeFactor,
-        fill: "white",
+          fontFamily: "Perfectly Nineties",
+          fontWeight: "bold",
+          fontSize: window.innerWidth * this.sizeFactor,
+          fill: "white",
       });
-      // parse HTML node
+
+      this.linkStyle = new PIXI.TextStyle({
+          fontFamily: "Perfectly Nineties",
+          fontSize: window.innerWidth * this.sizeFactor,
+          fill: "#00baff",
+          textDecoration: "underline",
+      });
+
+      // Parse HTML node
       this.parseNodes();
-  
-      // build lines from chunks
+
+      // Build lines from chunks
       this.buildLines();
-  
-      // position them
+
+      // Position them
       this.updatePosition();
-    }
-  
-    parseNodes() {
+  }
+
+  parseNodes() {
       const childNodes = this.$el.childNodes;
       childNodes.forEach((node) => {
-        if (node.nodeType === Node.TEXT_NODE) {
-          // If there's any content, create PIXI text
-          this.createPixiText(node.textContent, this.normalStyle);
-        } else if (node.nodeType === Node.ELEMENT_NODE) {
-          if (node.tagName.toLowerCase() === "strong") {
-            this.createPixiText(node.textContent, this.boldStyle);
-          } 
-          // If there's nested text in other tags, we can parse recursively
-          else {
-            node.childNodes.forEach((subNode) => {
-              if (subNode.nodeType === Node.TEXT_NODE) {
-                this.createPixiText(subNode.textContent, this.normalStyle);
+          if (node.nodeType === Node.TEXT_NODE) {
+              this.createPixiText(node.textContent, this.normalStyle);
+          } else if (node.nodeType === Node.ELEMENT_NODE) {
+              const tagName = node.tagName.toLowerCase();
+              if (tagName === "strong") {
+                  this.createPixiText(node.textContent, this.boldStyle);
+              } else if (tagName === "a") {
+                  this.createLinkPixi(node);
+              } else {
+                  node.childNodes.forEach((subNode) => {
+                      if (subNode.nodeType === Node.TEXT_NODE) {
+                          this.createPixiText(subNode.textContent, this.normalStyle);
+                      }
+                  });
               }
-            });
           }
-        }
       });
-    }
-  
-    createPixiText(textStr, style) {
-      // If the text is all whitespace, skip
+  }
+
+  createPixiText(textStr, style) {
       if (!textStr.trim()) return;
-  
-      // split on newlines
+
       const segments = textStr.split("\n");
       segments.forEach((seg, i) => {
-        // ignore empty lines
-        if (seg.trim()) {
-          const pixiText = new PIXI.Text(seg.trim(), style);
-          pixiText.anchor.set(0, 0);
-          pixiText.alpha = 0; // Start hidden
-          if (this.$el.classList.contains("nohide")) {
-            pixiText.alpha = 1;
+          if (seg.trim()) {
+              const pixiText = new PIXI.Text(seg.trim(), style);
+              pixiText.anchor.set(0, 0);
+              pixiText.alpha = 0; // Start hidden
+              if (this.$el.classList.contains("nohide")) {
+                  pixiText.alpha = 1;
+              }
+              pixiText.resolution = 3;
+              this.stage.addChild(pixiText);
+              this.allChunks.push(pixiText);
           }
-          pixiText.resolution = 3;
-          this.stage.addChild(pixiText);
-          this.allChunks.push(pixiText);
-        }
-        // If there's another segment after this, insert a lineBreak marker
-        if (i < segments.length - 1) {
-          this.allChunks.push({ type: "lineBreak" });
-        }
+          if (i < segments.length - 1) {
+              this.allChunks.push({ type: "lineBreak" });
+          }
       });
+  }
+
+  createLinkPixi(anchorElement) {
+    const textContent = anchorElement.textContent;
+    const href = anchorElement.getAttribute("href");
+    if (!textContent.trim() || !href) return;
+
+    const linkText = new PIXI.Text(textContent, this.linkStyle);
+    linkText.interactive = true;
+    linkText.buttonMode = true;
+
+    // this.$el.addEventListener("click", () => {
+    //     window.open(href, "_blank");
+    //     console.log("clicked");
+    // });
+
+    linkText.anchor.set(0, 0);
+    linkText.alpha = 0; // Start hidden
+    if (this.$el.classList.contains("nohide")) {
+        linkText.alpha = 1;
     }
-  
-    buildLines() {
+    linkText.resolution = 3;
+    this.stage.addChild(linkText);
+    this.allChunks.push(linkText);
+}
+
+
+  buildLines() {
       this.lines = [];
       let currentLine = [];
       let currentLineWidth = 0;
-  
-      const maxLineWidth = 800;  // pick a good max width
+
+      const maxLineWidth = 800; // Adjust this as needed
+      let lineHeight = this.lineHeight;
       this.allChunks.forEach((chunk) => {
-        if (chunk.type === "lineBreak") {
-          // push current line
-          if (currentLine.length > 0) {
-            this.lines.push(currentLine);
-            currentLine = [];
-            currentLineWidth = 0;
+          if (chunk.type === "lineBreak") {
+              if (currentLine.length > 0) {
+                  this.lines.push(currentLine);
+                  currentLine = [];
+                  currentLineWidth = 0;
+              }
+          } else {
+              chunk.updateText();
+              const w = chunk.width;
+
+              if (currentLineWidth + w > maxLineWidth && currentLine.length > 0) {
+                  this.lines.push(currentLine);
+                  currentLine = [];
+                  currentLineWidth = 0;
+                  lineHeight += this.lineHeight;
+              }
+              currentLine.push(chunk);
+              currentLineWidth += w;
           }
-        } else {
-          chunk.updateText();
-          const w = chunk.width;
-  
-          // if we exceed the max width, start new line
-          if (currentLineWidth + w > maxLineWidth && currentLine.length > 0) {
-            this.lines.push(currentLine);
-            currentLine = [];
-            currentLineWidth = 0;
-          }
-          currentLine.push(chunk);
-          currentLineWidth += w;
-        }
       });
-  
-      // push leftover
+
+      this.$el.style.lineHeight = `${lineHeight}`;
+
       if (currentLine.length > 0) {
-        this.lines.push(currentLine);
+          this.lines.push(currentLine);
       }
-    }
-  
-    updatePosition() {
-      // get bounding rect for top offset
+  }
+
+  updatePosition() {
       const rect = this.$el.getBoundingClientRect();
       const startY = rect.top + window.scrollY;
-      this.yOffset = window.innerWidth / 10;
-      let currentY = startY - this.yOffset;
-  
-      const lineHeight = window.innerWidth / 24; // adjust for bigger or smaller spacing
-  
-      // center each line
+      this.yOffset = 0;
+      let currentY = startY;
+      const chunkPadding = 5;
+
+      const lineHeight = window.innerWidth / 24;
+
       this.lines.forEach((line) => {
-        const lineWidth = line.reduce((sum, c) => sum + c.width, 0);
-        let currentX = (window.innerWidth / 2) - (lineWidth / 2);
-  
-        line.forEach((chunk) => {
-          chunk.x = currentX;
-          chunk.y = currentY;
-          currentX += chunk.width;
-        });
-  
-        currentY += lineHeight;
-        
+          const lineWidth = line.reduce((sum, c) => sum + c.width, 0);
+          let currentX = (window.innerWidth / 2) - (lineWidth / 2);
+
+          line.forEach((chunk) => {
+              chunk.x = currentX;
+              chunk.y = currentY;
+              currentX += chunk.width + chunkPadding;
+          });
+
+          currentY += lineHeight;
       });
+  }
 
-      
-    }
-
-    onResize() {
-        const newSize =  window.innerWidth * this.sizeFactor;
-      
-        // 2) Update your normal and bold TextStyles
-        this.normalStyle.fontSize = newSize;
-        this.boldStyle.fontSize = newSize;
-      
-        // 3) Re-apply the styles to each PIXI.Text chunk and update its text metrics
-        this.allChunks.forEach((chunk) => {
-          // Skip the lineBreak marker
-          if (chunk.type === "lineBreak") return;
-      
-          // If it’s a bold chunk, set style to this.boldStyle
-          // If normal, use this.normalStyle
-          const isBold = chunk.style && chunk.style.fontWeight === "bold";
-          chunk.style = isBold ? this.boldStyle : this.normalStyle;
-          chunk.updateText();
-        });
-      
-        this.buildLines();
-      
-        this.updatePosition();
-      }
-      
-  
-    fadeAll(targetAlpha, duration = 300) {
+  fadeAll(targetAlpha, duration = 300) {
       const steps = 10;
       const stepDuration = duration / steps;
-  
+
       this.allChunks.forEach((item) => {
-        // skip lineBreak objects
-        if (item.type === "lineBreak") return;
-  
-        const delta = (targetAlpha - item.alpha) / steps;
-        let currentStep = 0;
-        const fadeInterval = setInterval(() => {
-          currentStep++;
-          item.alpha += delta;
-          if (currentStep >= steps) {
-            item.alpha = targetAlpha;
-            clearInterval(fadeInterval);
-          }
-        }, stepDuration);
+          if (item.type === "lineBreak") return;
+
+          const delta = (targetAlpha - item.alpha) / steps;
+          let currentStep = 0;
+          const fadeInterval = setInterval(() => {
+              currentStep++;
+              item.alpha += delta;
+              if (currentStep >= steps) {
+                  item.alpha = targetAlpha;
+                  clearInterval(fadeInterval);
+              }
+          }, stepDuration);
       });
-    }
-  
-    resize() {
-      // if you want to re-compute line wrapping on resize, do:
-      // this.buildLines();
-      this.updatePosition();
-    }
-  
-    updatePositionOnScroll() {
-      this.updatePosition();
-    }
   }
-  
+
+  onResize() {
+      const newSize = window.innerWidth * this.sizeFactor;
+
+      this.normalStyle.fontSize = newSize;
+      this.boldStyle.fontSize = newSize;
+      this.linkStyle.fontSize = newSize;
+
+      this.allChunks.forEach((chunk) => {
+          if (chunk.type === "lineBreak") return;
+
+          const isBold = chunk.style && chunk.style.fontWeight === "bold";
+          const isLink = chunk.style && chunk.style.fill === this.linkStyle.fill;
+          chunk.style = isBold ? this.boldStyle : isLink ? this.linkStyle : this.normalStyle;
+          chunk.updateText();
+      });
+
+      this.buildLines();
+      this.updatePosition();
+  }
+}
+
 class ImagePixi {
-    constructor($el, stage, scale) {
+    constructor($el, stage, scale, bloomFilter) {
         this.$el = $el; // Reference to the DOM element
         this.stage = stage;
         this.scale = scale;
@@ -674,24 +709,28 @@ class ImagePixi {
             this.sprite = new PIXI.Sprite(texture);
 
             // Set anchor, scale, and add to stage
-            this.sprite.anchor.set(0.5);
-            
+            if (this.$el.classList.contains("projectImage")) {
+              this.sprite.anchor.set(0.5);
+            } else {
+              this.sprite.anchor.set(0.5);
+            }
             // set scale based on window width
             const scale = window.innerWidth / this.scale;
             this.sprite.scale.set(scale);
 
             this.stage.addChild(this.sprite);
 
-            if (this.$el.classList.contains("inline")) {
+            if (this.$el.classList.contains("projectImage")) {
                 this.sprite.alpha = 0;
             }
+
         }
     }
 
     addListeners() {
         // Enable interaction on the sprite
-        this.sprite.interactive = true;
-        this.sprite.buttonMode = true;
+        // this.sprite.interactive = true;
+        // this.sprite.buttonMode = true;
     
         // Handle hover
         this.$el.addEventListener("mouseenter", () => {
@@ -710,6 +749,25 @@ class ImagePixi {
                 window.open(href, "_blank");
             }
         });
+        
+        const parentDiv = this.$el.parentDiv;
+        if (parentDiv) {
+            parentDiv.addEventListener("mouseenter", () => {
+              console.log("mouse enter");
+              this.scale /= 1.2; 
+            });
+            parentDiv.addEventListener("mouseleave", () => {
+              this.scale *= 1.2;
+            });
+
+
+            parentDiv.addEventListener("click", () => {
+                const href = this.$el.getAttribute("href");
+                if (href) {
+                    window.open(href, "_blank");
+                }
+            });
+          }
 
     }
     
@@ -720,8 +778,8 @@ class ImagePixi {
         let x = left + width / 2;
         let y = top + height / 2;
 
-        if (this.$el.classList.contains("inline")) {
-            y = top - window.innerWidth / 12;
+        if (this.$el.classList.contains("projectImage")) {
+            y = top + height / 2;
             x = window.innerWidth / 2;
         }
 
