@@ -208,7 +208,7 @@ class PixiScene {
             threshold: 0.98,
             bloomScale: 1,
             brightness: 1.1,
-            blur: 5,
+            blur: 8,
             quality: 30,
             autoFit: true,
             padding:5,
@@ -515,7 +515,7 @@ class RichTextPixi {
       this.lineHeight = 0.25; // todo - get this from the CSS
 
       if (this.$el.classList.contains("larger")) {
-        this.sizeFactor = 0.025;
+        this.sizeFactor = 0.027;
       }
 
 
