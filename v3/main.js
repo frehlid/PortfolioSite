@@ -549,26 +549,60 @@ class RichTextPixi {
   }
 
   parseNodes() {
-      const childNodes = this.$el.childNodes;
-      childNodes.forEach((node) => {
-          if (node.nodeType === Node.TEXT_NODE) {
-              this.createPixiText(node.textContent, this.normalStyle);
-          } else if (node.nodeType === Node.ELEMENT_NODE) {
-              const tagName = node.tagName.toLowerCase();
-              if (tagName === "strong") {
-                  this.createPixiText(node.textContent, this.boldStyle);
-              } else if (tagName === "a") {
-                  this.createLinkPixi(node);
-              } else {
-                  node.childNodes.forEach((subNode) => {
-                      if (subNode.nodeType === Node.TEXT_NODE) {
-                          this.createPixiText(subNode.textContent, this.normalStyle);
-                      }
-                  });
-              }
-          }
-      });
-  }
+    const childNodes = this.$el.childNodes;
+    childNodes.forEach((node) => {
+        if (node.nodeType === Node.TEXT_NODE) {
+            // Split plain text into segments for line-breaking
+            this.splitAndCreateChunks(node.textContent, this.normalStyle);
+        } else if (node.nodeType === Node.ELEMENT_NODE) {
+            const tagName = node.tagName.toLowerCase();
+            if (tagName === "strong") {
+                this.createPixiText(node.textContent, this.boldStyle); // Handle bold text
+            } else if (tagName === "a") {
+                this.createLinkPixi(node); // Handle links
+            } else {
+                // Recursively handle any nested nodes
+                node.childNodes.forEach((subNode) => {
+                    if (subNode.nodeType === Node.TEXT_NODE) {
+                        this.splitAndCreateChunks(subNode.textContent, this.normalStyle);
+                    } else if (subNode.nodeType === Node.ELEMENT_NODE) {
+                        this.parseNodes(subNode);
+                    }
+                });
+            }
+        }
+    });
+}
+splitAndCreateChunks(textStr, style) {
+    if (!textStr.trim()) return; // Ignore empty strings
+
+    // Split by spaces to allow line-breaking at word boundaries
+    const segments = textStr.split(" ");
+    segments.forEach((segment, i) => {
+        const pixiText = new PIXI.Text(segment, style);
+        pixiText.anchor.set(0, 0);
+        pixiText.alpha = 0; // Start hidden
+        if (this.$el.classList.contains("nohide")) {
+            pixiText.alpha = 1;
+        }
+        pixiText.resolution = 3;
+        this.stage.addChild(pixiText);
+        this.allChunks.push(pixiText);
+
+        // Add a space chunk after each segment except the last one
+        if (i < segments.length - 1) {
+            const space = new PIXI.Text(" ", style);
+            space.anchor.set(0, 0);
+            space.alpha = pixiText.alpha;
+            space.resolution = 3;
+            this.stage.addChild(space);
+            this.allChunks.push(space);
+        }
+    });
+}
+
+
+
 
   createPixiText(textStr, style) {
       if (!textStr.trim()) return;
@@ -622,7 +656,7 @@ class RichTextPixi {
       let currentLine = [];
       let currentLineWidth = 0;
 
-      const maxLineWidth = (2/3) * window.innerWidth; 
+      const maxLineWidth = (2/3) * window.innerWidth;
       let lineHeight = this.lineHeight;
       this.allChunks.forEach((chunk) => {
           if (chunk.type === "lineBreak") {
@@ -658,9 +692,9 @@ class RichTextPixi {
       const startY = rect.top + window.scrollY;
       this.yOffset = 0;
       let currentY = startY;
-      const chunkPadding = 5;
+      const chunkPadding = 0;
 
-      const lineHeight = window.innerWidth / 24;
+      const lineHeight = window.innerWidth / 32;
 
       this.lines.forEach((line) => {
           const lineWidth = line.reduce((sum, c) => sum + c.width, 0);

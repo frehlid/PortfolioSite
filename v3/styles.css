@@ -57,11 +57,12 @@ li {
   display: flex;
   align-items: center;
   flex-direction: column;
+  padding-top: 3vw;
   overflow: hidden;
 }
 
 .collapsible-content.visible {
-  max-height: 50vw; 
+  max-height: 90vw; 
   opacity: 1;
   pointer-events: all;
 }
@@ -155,7 +156,7 @@ h2.webGl__text {
   z-index: 9999;
   pointer-events: all;
   cursor: none;
-  line-height: 0.6;
+  line-height: 0.4;
   font-family: 'Perfectly Nineties';
 
 }
