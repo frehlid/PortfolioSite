@@ -8,7 +8,7 @@
 @font-face {
   font-family: 'Perfectly Nineties';
   src:
-    url("./perfectly-nineties-.otf") format("opentype");
+    url("./perfectly-nineties-5.otf") format("opentype");
   font-weight: bold;
 }
 
@@ -27,6 +27,7 @@ body {
   width: 100vw;
   height: 100vh;
   overflow-y: auto;
+  overflow-x: hidden;
   
   /* Add scroll snap behavior */
   scroll-snap-type: y mandatory;
@@ -105,9 +106,9 @@ li {
 
 ul {
   list-style-type: none;
+  overflow-x: hidden;
   margin: 0;
-  width: 100%;
-  min-width:100vw;
+  width: 100vw;
   padding: calc(50vh - 5vh)  0 0; /* Offset the list to start halfway down the screen */
 }
 
@@ -155,6 +156,7 @@ h2.webGl__text {
   pointer-events: all;
   cursor: none;
   line-height: 0.6;
+  font-family: 'Perfectly Nineties';
 
 }
 
@@ -172,10 +174,11 @@ p.webGl__text {
   position: relative;
   z-index: 1;
   line-height: 0.25;
-cursor:none;
+  cursor:none;
+  font-family: 'Perfectly Nineties';
 }
 p.webGl__text a {
-
+  
   cursor:none;
 }
 

@@ -73,6 +73,32 @@ class PixiScene {
     }
 
     initializeCustomCursor() {
+        const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    
+        if (isTouchDevice) {
+            document.body.style.cursor = "default";
+    
+            let mouseDetected = false;
+    
+            const handleMouseDetection = () => {
+                if (!mouseDetected) {
+                    this.setupCustomCursor();
+                    mouseDetected = true;
+    
+                    window.removeEventListener("mousemove", handleMouseDetection);
+                }
+            };
+    
+            // if on touchscreen but mouse is detected, setup custom cursor
+            window.addEventListener("mousemove", handleMouseDetection);
+            return;
+        }
+    
+        this.setupCustomCursor();
+    }
+    
+    setupCustomCursor() {
+        // Custom cursor setup for mouse devices
         document.body.style.cursor = "none";
         this.customCursor = new PIXI.Graphics();
         this.customCursor.beginFill(0xffffff);
@@ -85,11 +111,12 @@ class PixiScene {
         this.customCursor.endFill();
         this.customCursor.zIndex = 1000;
         this.app.addChild(this.customCursor);
-
+    
         window.addEventListener("mousemove", (event) => {
             this.customCursor.position.set(event.clientX, event.clientY);
         });
     }
+    
 
     initializeContainers() {
         this.bgContainer = new PIXI.Container();
@@ -423,7 +450,6 @@ class TitlePixi {
                 const relaventSprites = this.sprites.filter(
                     (s) => s.parentDiv === contentDiv
                 );
-                console.log(this.sprites);
               
                 if (contentDiv.classList.contains("visible")) {
                   // Fade them in
@@ -486,8 +512,12 @@ class RichTextPixi {
       this.lines = []; 
       this.sizeFactor = 0.02;
       this.yOffset = 0;
-      console.log(this.$el.style.lineHeight); 
       this.lineHeight = 0.25; // todo - get this from the CSS
+
+      if (this.$el.classList.contains("larger")) {
+        this.sizeFactor = 0.025;
+      }
+
 
       this.normalStyle = new PIXI.TextStyle({
           fontFamily: "Perfectly Nineties",
@@ -508,6 +538,7 @@ class RichTextPixi {
           fill: "#00baff",
           textDecoration: "underline",
       });
+
 
 
       this.parseNodes();
@@ -805,6 +836,9 @@ class ImagePixi {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
-    const scene = new PixiScene();
-    await scene.init();
+    document.fonts.ready.then(() => {
+        const scene = new PixiScene();
+        scene.init();
+    });
+
 });
