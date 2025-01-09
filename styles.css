@@ -1,7 +1,22 @@
+@font-face {
+  font-family: 'Perfectly Nineties';
+  src:
+    url("./perfectly-nineties-regular.otf") format("opentype");
+  font-weight: regular;
+}
+
+@font-face {
+  font-family: 'Perfectly Nineties';
+  src:
+    url("./perfectly-nineties-5.otf") format("opentype");
+  font-weight: bold;
+}
+
 body {
   padding: 0;
   margin: 0;
   background-color: black;
+  cursor: none;
 }
 
 .main__wrapper {
@@ -11,45 +26,162 @@ body {
 #scrollarea {
   width: 100vw;
   height: 100vh;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  
+  /* Add scroll snap behavior */
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth; /* optional: nice smooth scrolling */
 }
+
+li {
+  height: auto;
+  width: 100%;
+  overflow-x:hidden;
+  padding-bottom: 10vw;
+  min-width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column; /* Stack content vertically */
+  margin: 0;
+  scroll-snap-align: center;
+}
+
+
+
+.collapsible-content {
+  max-height: 0;
+  opacity: 0;
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  padding-top: 3vw;
+  overflow: hidden;
+}
+
+.collapsible-content.visible {
+  max-height: 90vw; 
+  opacity: 1;
+  pointer-events: all;
+}
+
+
+.logos {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  width: 100vw;
+  position: relative;
+  z-index: 99999;
+  pointer-events: all;
+}
+
+.logo {
+  width: 5vw;
+  height: 5vw;
+  margin: 0 2vw;
+  position: relative;
+  pointer-events: auto;
+  z-index: 99999;
+}
+
+
+
 
 .webGl__text {
   font-family: Arial, sans-serif;
   color: white;
   font-size: 15vw;
   opacity: 0;
-  cursor: pointer;
   margin: 0;
   outline: none;
   white-space: nowrap;
 
-  line-height: unset!important;
-  display: table-cell;
+ 
+  cursor:none;
+  position: relative;
 }
 
 ul {
   list-style-type: none;
+  overflow-x: hidden;
   margin: 0;
-  padding: 0;
-  display: table;
-  margin: auto;
-
+  width: 100vw;
+  padding: calc(50vh - 5vh)  0 0; /* Offset the list to start halfway down the screen */
 }
 
-li {
-  display: table-row;
+.imgs {
+  display: inline;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  position: relative;
+  z-index: 99999;
+  pointer-events: all;
+}
+
+.projectImage {
+  height: 20vw;
+  width: 50vw;
+  padding: 2.5vw;
+  position: relative;
+  pointer-events: auto;
+  background-color: black;
+}
+
+/* Add spacing between the first and second list item */
+li:nth-child(2) {
+  margin-top: 5em; /* Adjust this value as needed */
 }
 
 p, h2 {
   margin: 0;
-  line-height: 1;
+  height: fit-content;
   color: white;
 }
 
+.h2 {
+  z-index: 1000;
+  
+}
+h1 {
+  line-height: 0.9;
+}
+
+h2.webGl__text {
+  position: relative;
+  z-index: 9999;
+  pointer-events: all;
+  cursor: none;
+  line-height: 0.4;
+  font-family: 'Perfectly Nineties';
+
+}
+
+.nohide {
+  padding-bottom: 2.5vw;
+}
+
+
 p {
-  font-size: 20px;
-  display: table-cell;
+  font-size: 2px;
+  text-align: center;
+}
+
+p.webGl__text {
+  position: relative;
+  z-index: 1;
+  line-height: 0.25;
+  cursor:none;
+  font-family: 'Perfectly Nineties';
+}
+p.webGl__text a {
+  
+  cursor:none;
 }
 
 canvas {
@@ -59,5 +191,6 @@ canvas {
   right: 0;
   bottom: 0;
   pointer-events: none;
-  z-index: -1;
+  z-index: 0;
 }
+
