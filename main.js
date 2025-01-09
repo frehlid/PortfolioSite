@@ -188,7 +188,8 @@ class PixiScene {
     }
 
     initializeDisplacementFilter() {
-        const displacementTexture = PIXI.Texture.from("./displacement_map.png");
+        const src = document.getElementById("displacement-map").getAttribute("src");
+        const displacementTexture = PIXI.Texture.from(src);
         this.cursorDisplacement = new PIXI.Sprite(displacementTexture);
         this.cursorDisplacement.anchor.set(0.5);
         this.cursorDisplacement.width = 250;
